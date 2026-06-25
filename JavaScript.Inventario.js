@@ -1,4 +1,3 @@
-// CONFIGURACIÓN DE TU BASE DE DATOS EN LA NUBE
 const firebaseConfig = {
   apiKey: "AIzaSyDgaSrT59ryXX8v4PZ02a3kMlADrY5Vuzs",
   authDomain: "gestor-de-inventario-3cd71.firebaseapp.com",
@@ -12,7 +11,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// COMPONENTE VISTA: Grupos de Trabajo (Teams)
+// VISTA: Grupos de Trabajo
 function TeamsPage({ teams, activeTeamId, onNew, onDelete, onSelectTeam, onCopyInviteLink }) {
   return (
     <div style={{animation:'fadeUp .3s ease'}}>
@@ -77,7 +76,7 @@ function TeamsPage({ teams, activeTeamId, onNew, onDelete, onSelectTeam, onCopyI
   );
 }
 
-// COMPONENTE VISTA: Historial Auditado con Responsables
+// VISTA: Historial de Entradas y Salidas Auditadas
 function HistoryPage({ historyLogs }) {
   return (
     <div style={{animation:'fadeUp .3s ease'}}>
@@ -97,7 +96,7 @@ function HistoryPage({ historyLogs }) {
           <table className="history-table">
             <thead>
               <tr>
-                <th>Fecha e Hora</th>
+                <th>Fecha e Hilo</th>
                 <th>Artículo</th>
                 <th>Acción / Movimiento</th>
                 <th>Cantidad</th>
@@ -133,7 +132,7 @@ function HistoryPage({ historyLogs }) {
   );
 }
 
-// COMPONENTE VISTA: Login / Registro de Usuarios
+// PANTALLA DE LOGIN / REGISTRO
 function AuthScreen({ onLogin, onRegister }) {
   const [isRegisterMode, setIsRegisterMode] = React.useState(false);
   const [email, setEmail] = React.useState('');
@@ -198,7 +197,7 @@ function AuthScreen({ onLogin, onRegister }) {
   );
 }
 
-// COMPONENTE PRINCIPAL GLOBAL DE LA APP
+// COMPONENTE PRINCIPAL GLOBAL
 function App() {
   const [currentUser, setCurrentUser] = React.useState(null);
   const [authLoading, setAuthLoading] = React.useState(true);
@@ -332,20 +331,19 @@ function App() {
     return () => { unsubscribeItems(); unsubscribeHistory(); };
   }, [currentUser, activeTeamId]);
 
-  // REGISTRAR MOVIMIENTOS EN LA COLECCIÓN DE AUDITORÍA
   const logMovement = async (itemName, action, qtyChanged, unit) => {
     try {
       await db.collection("historial").add({
         teamId: activeTeamId,
         itemName: itemName,
-        action: action, // 'Entrada' | 'Salida' | 'Creacion'
+        action: action,
         qtyChanged: Math.abs(qtyChanged),
         unit: unit,
         userEmail: currentUser.email,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
     } catch(err) {
-      console.error("Error al guardar historial:", err);
+      console.error("Error al guardar auditoría de historial:", err);
     }
   };
 
@@ -364,11 +362,23 @@ function App() {
   const handleLogout = async () => { await auth.signOut(); localStorage.removeItem("activeTeamId"); };
 
   const handleOpenNew = () => {
-    setEditingItem(null); setFormName(""); setFormCat(""); setFormQty("0"); setFormMin("5"); setFormUnit("uds"); setModalOpen(true);
+    setEditingItem(null);
+    setFormName("");
+    setFormCat("");
+    setFormQty("");
+    setFormMin("");
+    setFormUnit("uds");
+    setModalOpen(true);
   };
 
   const openEdit = (item) => {
-    setEditingItem(item); setFormName(item.name); setFormCat(item.category); setFormQty(item.quantity.toString()); setFormMin(item.minStock.toString()); setFormUnit(item.unit || "uds"); setModalOpen(true);
+    setEditingItem(item);
+    setFormName(item.name);
+    setFormCat(item.category);
+    setFormQty(item.quantity.toString());
+    setFormMin(item.minStock.toString());
+    setFormUnit(item.unit || "uds");
+    setModalOpen(true);
   };
 
   const saveItem = async (e) => {
@@ -460,17 +470,6 @@ function App() {
     navigator.clipboard.writeText(inviteUrl).then(() => showToast("📋 Enlace copiado al portapapeles", "success"));
   };
 
-  const createSet = (e) => {
-    e.preventDefault();
-    if(!formSetName.trim()) return;
-    const newId = "set-" + (itemSets.length + 1);
-    setItemSets([...itemSets, { id: newId, name: formSetName }]);
-    setActiveSet(newId);
-    setSetModalOpenFolder(false);
-    setFormSetName("");
-    showToast("Nueva carpeta de colección creada", "success");
-  };
-
   const activeSetObj = itemSets.find(s => s.id === activeSet) || itemSets[0];
   const activeTeamObj = teams.find(t => t.id === activeTeamId);
 
@@ -521,7 +520,7 @@ function App() {
           <p className="sidebar-section-label" style={{marginTop:'12px'}}>Colecciones</p>
           <div className="sidebar-menu">
             {itemSets.map(s => (
-              <button key={s.id} className={`sidebar-item ${activeSet===s.id?'active':''}`} onClick={()=>{setActiveSet(s.id); setPage("inventory");}}>
+              <button key={s.id} className={`sidebar-item ${activeSet===s.id?'active':''}`} onClick Papirujas={()=>{setActiveSet(s.id); setPage("inventory");}}>
                 📁 {s.name}
               </button>
             ))}
@@ -595,7 +594,7 @@ function App() {
         </div>
       </div>
 
-      {/* MODAL CREAR/EDITAR ARTÍCULO */}
+      {/* MODALES REUTILIZABLES */}
       {modalOpen && (
         <div className="modal-overlay">
           <div className="modal-card">
@@ -631,22 +630,6 @@ function App() {
               <div className="form-group"><label>Nombre</label><input type="text" value={teamFormName} onChange={e=>setTeamFormName(e.target.value)} required/></div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={()=>setTeamModal(false)}>Cancelar</button>
-                <button type="submit" className="btn btn-blue">Crear</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL NUEVA CARPETA */}
-      {setModalOpenFolder && (
-        <div className="modal-overlay">
-          <div className="modal-card">
-            <div className="modal-header"><h3>Crear Nueva Carpeta</h3></div>
-            <form onSubmit={createSet}>
-              <div className="form-group"><label>Nombre de la colección</label><input type="text" placeholder="Ej: Almacén B" value={formSetName} onChange={e=>setFormSetName(e.target.value)} required/></div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={()=>setSetModalOpenFolder(false)}>Cancelar</button>
                 <button type="submit" className="btn btn-blue">Crear</button>
               </div>
             </form>
